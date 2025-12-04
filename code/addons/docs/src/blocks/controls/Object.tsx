@@ -1,4 +1,4 @@
-import type { ComponentProps, FC, FocusEvent, SyntheticEvent } from 'react';
+import type { ChangeEvent, ComponentProps, FC, SyntheticEvent } from 'react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button, Form, ToggleButton } from 'storybook/internal/components';
@@ -172,11 +172,15 @@ const getCustomStyleFunction: (theme: Theme) => JsonTreeProps['getStyle'] = (the
   },
 });
 
+const formatValue = (val: ObjectValue) =>
+  val === null || val === undefined ? '' : JSON.stringify(val, null, 2);
+
 export const ObjectControl: FC<ObjectProps> = ({ name, value, onChange, argType }) => {
   const theme = useTheme();
   const data = useMemo(() => value && cloneDeep(value), [value]);
   const hasData = data !== null && data !== undefined;
   const [showRaw, setShowRaw] = useState(!hasData);
+  const [rawValue, setRawValue] = useState(() => formatValue(value));
 
   const [parseError, setParseError] = useState<Error | null>(null);
   const readonly = !!argType?.table?.readonly;
@@ -193,6 +197,10 @@ export const ObjectControl: FC<ObjectProps> = ({ name, value, onChange, argType 
     },
     [onChange]
   );
+
+  useEffect(() => {
+    setRawValue(formatValue(value));
+  }, [value]);
 
   const [forceVisible, setForceVisible] = useState(false);
   const onForceVisible = useCallback(() => {
@@ -226,8 +234,9 @@ export const ObjectControl: FC<ObjectProps> = ({ name, value, onChange, argType 
       id={getControlId(name)}
       minRows={3}
       name={name}
-      defaultValue={value === null ? '' : JSON.stringify(value, null, 2)}
-      onBlur={(event: FocusEvent<HTMLTextAreaElement>) => updateRaw(event.target.value)}
+      value={rawValue}
+      onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setRawValue(event.target.value)}
+      onBlur={() => updateRaw(rawValue)}
       placeholder="Edit JSON string..."
       autoFocus={forceVisible}
       valid={parseError ? 'error' : undefined}
